@@ -11,7 +11,7 @@
 <p align="center">
     <img src="https://img.shields.io/pypi/v/gigapixel?color=orange" alt="PyPI">
     <img src="https://img.shields.io/pypi/pyversions/gigapixel?color=blueviolet" alt="Python 3">
-    <img src="https://github.com/TimNekk/pypayment/actions/workflows/tests.yml/badge.svg" alt="Tests">
+    <img src="https://github.com/TimNekk/gigapixel/actions/workflows/tests.yml/badge.svg" alt="Tests">
 </p>
 
 <p align="center">
