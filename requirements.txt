@@ -1,0 +1,3 @@
+pywinauto
+clipboard
+loguru
