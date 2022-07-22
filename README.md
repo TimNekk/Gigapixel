@@ -9,9 +9,9 @@
 <h4 align="center">Topaz Gigapixel AI automation tool</h4>
 
 <p align="center">
-    <img src="https://img.shields.io/pypi/v/gigapixel?color=orange" alt="PyPI">
-    <img src="https://img.shields.io/pypi/pyversions/gigapixel?color=blueviolet" alt="Python 3">
-    <img src="https://github.com/TimNekk/gigapixel/actions/workflows/tests.yml/badge.svg" alt="Tests">
+    <img src="https://img.shields.io/pypi/v/gigapixel?style=for-the-badge" alt="PyPI">
+    <img src="https://img.shields.io/pypi/pyversions/gigapixel?style=for-the-badge" alt="Python 3">
+    <img src="https://img.shields.io/github/workflow/status/TimNekk/gigapixel/Tests?label=TESTS&style=for-the-badge" alt="Tests">
 </p>
 
 <p align="center">
