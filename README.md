@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="logo.png" alt="Gigapixel" height="300">
+  <img src="logo.png" alt="Gigapixel" height="260">
   <br>
   Gigapixel
   <br>
