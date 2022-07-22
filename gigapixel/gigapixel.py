@@ -1,18 +1,16 @@
 import os
 from enum import Enum
 from typing import Optional
-
-from pywinauto import ElementNotFoundError
-
-from log import log, Level
 from pathlib import Path
 
+from .logging import log, Level
+from .exceptions import NotFile, FileAlreadyExists, ElementNotFound
+
+from pywinauto import ElementNotFoundError
 import clipboard
 from loguru import logger
 from pywinauto.application import Application, ProcessNotFoundError
 from pywinauto.keyboard import send_keys
-
-from exceptions import NotFile, FileAlreadyExists, ElementNotFound
 
 
 class Scale(Enum):
