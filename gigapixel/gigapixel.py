@@ -48,10 +48,12 @@ class Gigapixel:
 
         @log("Opening photo: {}", "Photo opened", format=(1,), level=Level.DEBUG)
         def open_photo(self, photo_path: Path) -> None:
-            self._main_window.set_focus()
-            send_keys('^o')
-            clipboard.copy(str(photo_path))
-            send_keys('^v {ENTER}')
+            while photo_path.name not in self._main_window.element_info.name:
+                logger.debug("Trying to open photo")
+                self._main_window.set_focus()
+                send_keys('{ESC}^o')
+                clipboard.copy(str(photo_path))
+                send_keys('^v {ENTER}')
 
         @log("Saving photo", "Photo saved", level=Level.DEBUG)
         def save_photo(self) -> None:
