@@ -22,7 +22,7 @@ class Level(Enum):
 
 def log(start: Optional[str] = None,
         end: Optional[str] = None,
-        format: Optional[tuple[int]] = None,
+        format: Optional[int] = None,
         level: Level = Level.INFO):
     def outer_wrapper(function):
         def wrapper(*args, **kwargs):
