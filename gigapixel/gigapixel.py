@@ -58,7 +58,8 @@ class Gigapixel:
         @log("Saving photo", "Photo saved", level=Level.DEBUG)
         def save_photo(self) -> None:
             send_keys('^S {ENTER}')
-            self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible', timeout=60)
+            self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible',
+                                                                                                      timeout=60)
 
         @log("Setting processing options", "Processing options set", level=Level.DEBUG)
         def set_processing_options(self, scale: Optional[Scale] = None, mode: Optional[Mode] = None) -> None:
@@ -117,8 +118,14 @@ class Gigapixel:
         if save_path.name in os.listdir(path.parent):
             raise FileAlreadyExists(f"Output file already exists: {save_path}")
 
+    @staticmethod
+    def _remove_suffix(input_string: str, suffix: str) -> str:
+        if suffix and input_string.endswith(suffix):
+            return input_string[:-len(suffix)]
+        return input_string
+
     def _get_save_path(self, path: Path) -> Path:
-        return path.parent / (path.name.removesuffix(path.suffix) + self._output_suffix + path.suffix)
+        return path.parent / (Gigapixel._remove_suffix(path.name, path.suffix) + self._output_suffix + path.suffix)
 
     @log(start="Starting processing: {}", format=(1,))
     @log(end="Finished processing: {}", format=(1,), level=Level.SUCCESS)
