@@ -11,7 +11,7 @@
 <p align="center">
     <img src="https://img.shields.io/pypi/v/gigapixel?style=for-the-badge" alt="PyPI">
     <img src="https://img.shields.io/pypi/pyversions/gigapixel?style=for-the-badge" alt="Python 3">
-    <img src="https://img.shields.io/github/workflow/status/TimNekk/gigapixel/Tests?label=TESTS&style=for-the-badge" alt="Tests">
+    <img src="https://img.shields.io/github/actions/workflow/status/TimNekk/Gigapixel/tests.yml?branch=main&label=TESTS&style=for-the-badge" alt="Tests">
 </p>
 
 <p align="center">
