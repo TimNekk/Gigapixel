@@ -55,7 +55,7 @@ app = Gigapixel(exe_path, output_suffix)
 
 # Process image.
 image = Path('path/to/image.jpg')
-output_path = app.process(image, scale=Scale.X2, mode=Mode.STANDARD)
+output_path = app.process(image, scale=Scale.X2, mode=Mode.STANDARD, delete_from_history=True)
 
 # Print output path.
 print(output_path)
