@@ -60,7 +60,7 @@ class Gigapixel:
             send_keys('^S {ENTER}')
             self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible',
                                                                                                       timeout=60)
-        
+
         @log("Deleting photo from history", "Photo deleted", level=Level.DEBUG)
         def delete_photo(self) -> None:
             self._main_window.Pane.Button2.click_input()
