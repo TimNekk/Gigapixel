@@ -60,6 +60,10 @@ class Gigapixel:
             send_keys('^S {ENTER}')
             self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible',
                                                                                                       timeout=60)
+        
+        @log("Deleting photo from history", "Photo deleted", level=Level.DEBUG)
+        def delete_photo(self) -> None:
+            self._main_window.Pane.Button2.click_input()
 
         @log("Setting processing options", "Processing options set", level=Level.DEBUG)
         def set_processing_options(self, scale: Optional[Scale] = None, mode: Optional[Mode] = None) -> None:
@@ -129,11 +133,13 @@ class Gigapixel:
 
     @log(start="Starting processing: {}", format=(1,))
     @log(end="Finished processing: {}", format=(1,), level=Level.SUCCESS)
-    def process(self, photo_path: Path, scale: Scale = Scale.X2, mode: Mode = Mode.STANDARD) -> Path:
+    def process(self, photo_path: Path, scale: Scale = Scale.X2, mode: Mode = Mode.STANDARD, delete_from_history: bool = True) -> Path:
         self._check_path(photo_path)
 
         self._app.open_photo(photo_path)
         self._app.set_processing_options(scale, mode)
         self._app.save_photo()
+        if delete_from_history:
+            self._app.delete_photo()
 
         return self._get_save_path(photo_path)
