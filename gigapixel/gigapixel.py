@@ -28,6 +28,16 @@ class Mode(Enum):
     VERY_COMPRESSED = "Very Compressed"
 
 
+class OutputFormat(Enum):
+    PRESERVE_SOURCE_FORMAT = "Preserve Source Format"
+    JPG = "JPG"
+    JPEG = "JPEG"
+    TIF = "TIF"
+    TIFF = "TIFF"
+    PNG = "PNG"
+    DNG = "DNG"
+
+
 class Gigapixel:
     def __init__(self,
                  executable_path: Path,
@@ -56,8 +66,10 @@ class Gigapixel:
                 send_keys('^v {ENTER}')
 
         @log("Saving photo", "Photo saved", level=Level.DEBUG)
-        def save_photo(self) -> None:
-            send_keys('^S {ENTER}')
+        def save_photo(self, output_format: OutputFormat) -> None:
+            send_keys('^S')
+            self._set_output_format(output_format)
+            send_keys('{ENTER}')
             self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible',
                                                                                                       timeout=60)
 
@@ -71,6 +83,31 @@ class Gigapixel:
                 self._set_scale(scale)
             if mode:
                 self._set_mode(mode)
+
+        def _set_output_format(self, save_format: OutputFormat) -> None:
+            self._main_window.ComboBox.click_input()
+
+            if save_format == OutputFormat.PRESERVE_SOURCE_FORMAT:
+                self._main_window.ListItem.click_input()
+                send_keys('{TAB}')
+            elif save_format == OutputFormat.JPG:
+                self._main_window.ListItem2.click_input()
+                send_keys('{TAB}')
+            elif save_format == OutputFormat.JPEG:
+                self._main_window.ListItem3.click_input()
+                send_keys('{TAB}')
+            elif save_format == OutputFormat.TIF:
+                self._main_window.ListItem4.click_input()
+                send_keys('{TAB} {TAB} {TAB}')
+            elif save_format == OutputFormat.TIFF:
+                self._main_window.ListItem5.click_input()
+                send_keys('{TAB} {TAB} {TAB}')
+            elif save_format == OutputFormat.PNG:
+                self._main_window.ListItem6.click_input()
+                send_keys('{TAB}')
+            elif save_format == OutputFormat.DNG:
+                self._main_window.ListItem7.click_input()
+                send_keys('{TAB}')
 
         def _set_scale(self, scale: Scale):
             if self.scale == scale:
@@ -114,11 +151,11 @@ class Gigapixel:
         return instance
 
     @log("Checking path: {}", "Path is valid", format=(1,), level=Level.DEBUG)
-    def _check_path(self, path: Path) -> None:
+    def _check_path(self, path: Path, output_format: OutputFormat) -> None:
         if not path.is_file():
             raise NotFile(f"Path is not a file: {path}")
 
-        save_path = self._get_save_path(path)
+        save_path = self._get_save_path(path, output_format)
         if save_path.name in os.listdir(path.parent):
             raise FileAlreadyExists(f"Output file already exists: {save_path}")
 
@@ -128,18 +165,26 @@ class Gigapixel:
             return input_string[:-len(suffix)]
         return input_string
 
-    def _get_save_path(self, path: Path) -> Path:
-        return path.parent / (Gigapixel._remove_suffix(path.name, path.suffix) + self._output_suffix + path.suffix)
+    def _get_save_path(self, path: Path, output_format: OutputFormat) -> Path:
+        extension = path.suffix if output_format == OutputFormat.PRESERVE_SOURCE_FORMAT else f".{output_format.value.lower()}"
+        return path.parent / (Gigapixel._remove_suffix(path.name, path.suffix) + self._output_suffix + extension)
 
     @log(start="Starting processing: {}", format=(1,))
     @log(end="Finished processing: {}", format=(1,), level=Level.SUCCESS)
-    def process(self, photo_path: Path, scale: Scale = Scale.X2, mode: Mode = Mode.STANDARD, delete_from_history: bool = True) -> Path:
-        self._check_path(photo_path)
+    def process(self,
+                photo_path: Path,
+                scale: Scale = Scale.X2,
+                mode: Mode = Mode.STANDARD,
+                delete_from_history: bool = True,
+                output_format: OutputFormat = OutputFormat.PRESERVE_SOURCE_FORMAT
+                ) -> Path:
+        self._check_path(photo_path, output_format)
 
         self._app.open_photo(photo_path)
         self._app.set_processing_options(scale, mode)
-        self._app.save_photo()
+        self._app.save_photo(output_format)
+
         if delete_from_history:
             self._app.delete_photo()
 
-        return self._get_save_path(photo_path)
+        return self._get_save_path(photo_path, output_format)
