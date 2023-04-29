@@ -24,7 +24,8 @@ class Mode(Enum):
     STANDARD = "Standard"
     Lines = "Lines"
     ART_AND_CG = "Art & CG"
-    LOW_RESOLUTION = "Low Resolution"
+    HIGH_QUALITY = "HQ"
+    LOW_RESOLUTION = "Low Res"
     VERY_COMPRESSED = "Very Compressed"
 
 

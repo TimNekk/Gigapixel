@@ -24,7 +24,7 @@
 
 ## Requirements
 
-[Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v6** of **newer** required
+[Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v6.3.3** or **newer** required
 
 ## Installation
 
