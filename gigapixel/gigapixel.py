@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import Optional
+from typing import Optional, Dict, Any
 from pathlib import Path
 
 from .logging import log, Level
@@ -59,18 +59,18 @@ class Gigapixel:
             self.scale: Optional[Scale] = None
             self.mode: Optional[Mode] = None
 
-            self._cancel_processing_button = None
-            self._delete_button = None
-            self._output_combo_box = None
-            self._preserve_source_format_button = None
-            self._jpg_button = None
-            self._jpeg_button = None
-            self._tif_button = None
-            self._tiff_button = None
-            self._png_button = None
-            self._dng_button = None
-            self._scale_buttons = {}
-            self._mode_buttons = {}
+            self._cancel_processing_button: Optional[Any] = None
+            self._delete_button: Optional[Any] = None
+            self._output_combo_box: Optional[Any] = None
+            self._preserve_source_format_button: Optional[Any] = None
+            self._jpg_button: Optional[Any] = None
+            self._jpeg_button: Optional[Any] = None
+            self._tif_button: Optional[Any] = None
+            self._tiff_button: Optional[Any] = None
+            self._png_button: Optional[Any] = None
+            self._dng_button: Optional[Any] = None
+            self._scale_buttons: Dict[Scale, Any] = {}
+            self._mode_buttons: Dict[Mode, Any] = {}
 
         @log("Opening photo: {}", "Photo opened", format=(1,), level=Level.DEBUG)
         def open_photo(self, photo_path: Path) -> None:
