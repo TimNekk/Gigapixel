@@ -24,7 +24,7 @@
 
 ## Requirements
 
-[Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v6.3.3** or **newer** required
+[Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v6.1.0** or **newer** required
 
 ## Installation
 
@@ -55,11 +55,24 @@ app = Gigapixel(exe_path, output_suffix)
 
 # Process image.
 image = Path('path/to/image.jpg')
-output_path = app.process(image, scale=Scale.X2, mode=Mode.STANDARD, delete_from_history=True, output_format=OutputFormat.PNG)
+output_path = app.process(image)
 
 # Print output path.
 print(output_path)
 ```
+
+Additional parameters can be passed to `process()` method **(Takes additional time)**:
+```python
+from gigapixel import Scale, Mode, OutputFormat
+
+output_path = app.process(image, scale=Scale.X2, mode=Mode.STANDARD, delete_from_history=True, output_format=OutputFormat.PNG)
+```
+
+> **Warning!**
+> Using parameters (`scale`, `mode`, `output_format`, `delete_from_history`) will take **additional time** to process single image.
+> Consider using them only when needed.
+> To get the best performance, use `app.process(image)`
+
 
 ## Contributing
 
