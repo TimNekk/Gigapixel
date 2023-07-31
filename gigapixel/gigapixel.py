@@ -6,7 +6,7 @@ from pathlib import Path
 from .logging import log, Level
 from .exceptions import NotFile, FileAlreadyExists, ElementNotFound
 
-from pywinauto import ElementNotFoundError
+from pywinauto import ElementNotFoundError, timings
 import clipboard
 from loguru import logger
 from pywinauto.application import Application, ProcessNotFoundError
@@ -47,15 +47,30 @@ class Gigapixel:
         self._output_suffix = output_suffix
 
         instance = self._get_gigapixel_instance()
-        self._app = self.App(instance)
+        self._app = self._App(instance)
 
-    class App:
+    class _App:
         def __init__(self, app: Application):
-            self._app = app
-            self._main_window = self._app.window()
+            timings.Timings.window_find_timeout = 0.5
+
+            self.app = app
+            self._main_window = self.app.window()
 
             self.scale: Optional[Scale] = None
             self.mode: Optional[Mode] = None
+
+            self._cancel_processing_button = None
+            self._delete_button = None
+            self._output_combo_box = None
+            self._preserve_source_format_button = None
+            self._jpg_button = None
+            self._jpeg_button = None
+            self._tif_button = None
+            self._tiff_button = None
+            self._png_button = None
+            self._dng_button = None
+            self._scale_buttons = {}
+            self._mode_buttons = {}
 
         @log("Opening photo: {}", "Photo opened", format=(1,), level=Level.DEBUG)
         def open_photo(self, photo_path: Path) -> None:
@@ -67,16 +82,24 @@ class Gigapixel:
                 send_keys('^v {ENTER}')
 
         @log("Saving photo", "Photo saved", level=Level.DEBUG)
-        def save_photo(self, output_format: OutputFormat) -> None:
+        def save_photo(self, output_format: Optional[OutputFormat]) -> None:
             send_keys('^S')
-            self._set_output_format(output_format)
+
+            if output_format:
+                self._set_output_format(output_format)
+
             send_keys('{ENTER}')
-            self._main_window.child_window(title="Cancel Processing", control_type="Button").wait_not('visible',
-                                                                                                      timeout=60)
+            if self._cancel_processing_button is None:
+                self._cancel_processing_button = self._main_window.child_window(title="Cancel Processing",
+                                                                                control_type="Button",
+                                                                                depth=1)
+            self._cancel_processing_button.wait_not('visible', timeout=60)
 
         @log("Deleting photo from history", "Photo deleted", level=Level.DEBUG)
         def delete_photo(self) -> None:
-            self._main_window.Pane.Button2.click_input()
+            if self._delete_button is None:
+                self._delete_button = self._main_window.Pane.Button2
+            self._delete_button.click_input()
 
         @log("Setting processing options", "Processing options set", level=Level.DEBUG)
         def set_processing_options(self, scale: Optional[Scale] = None, mode: Optional[Mode] = None) -> None:
@@ -86,28 +109,44 @@ class Gigapixel:
                 self._set_mode(mode)
 
         def _set_output_format(self, save_format: OutputFormat) -> None:
-            self._main_window.ComboBox.click_input()
+            if self._output_combo_box is None:
+                self._output_combo_box = self._main_window.ComboBox
+            self._output_combo_box.click_input()
 
             if save_format == OutputFormat.PRESERVE_SOURCE_FORMAT:
-                self._main_window.ListItem.click_input()
+                if self._preserve_source_format_button is None:
+                    self._preserve_source_format_button = self._main_window.ListItem
+                self._preserve_source_format_button.click_input()
                 send_keys('{TAB}')
             elif save_format == OutputFormat.JPG:
-                self._main_window.ListItem2.click_input()
+                if self._jpg_button is None:
+                    self._jpg_button = self._main_window.ListItem2
+                self._jpg_button.click_input()
                 send_keys('{TAB}')
             elif save_format == OutputFormat.JPEG:
-                self._main_window.ListItem3.click_input()
+                if self._jpeg_button is None:
+                    self._jpeg_button = self._main_window.ListItem3
+                self._jpeg_button.click_input()
                 send_keys('{TAB}')
             elif save_format == OutputFormat.TIF:
-                self._main_window.ListItem4.click_input()
+                if self._tif_button is None:
+                    self._tif_button = self._main_window.ListItem4
+                self._tif_button.click_input()
                 send_keys('{TAB} {TAB} {TAB}')
             elif save_format == OutputFormat.TIFF:
-                self._main_window.ListItem5.click_input()
+                if self._tiff_button is None:
+                    self._tiff_button = self._main_window.ListItem5
+                self._tiff_button.click_input()
                 send_keys('{TAB} {TAB} {TAB}')
             elif save_format == OutputFormat.PNG:
-                self._main_window.ListItem6.click_input()
+                if self._png_button is None:
+                    self._png_button = self._main_window.ListItem6
+                self._png_button.click_input()
                 send_keys('{TAB}')
             elif save_format == OutputFormat.DNG:
-                self._main_window.ListItem7.click_input()
+                if self._dng_button is None:
+                    self._dng_button = self._main_window.ListItem7
+                self._dng_button.click_input()
                 send_keys('{TAB}')
 
         def _set_scale(self, scale: Scale):
@@ -115,7 +154,9 @@ class Gigapixel:
                 return
 
             try:
-                self._main_window.child_window(title=scale.value).click_input()
+                if scale not in self._scale_buttons:
+                    self._scale_buttons[scale] = self._main_window.child_window(title=scale.value)
+                self._scale_buttons[scale].click_input()
             except ElementNotFoundError:
                 raise ElementNotFound(f"Scale button {scale.value} not found")
             self.scale = scale
@@ -126,7 +167,9 @@ class Gigapixel:
                 return
 
             try:
-                self._main_window.child_window(title=mode.value).click_input()
+                if mode not in self._mode_buttons:
+                    self._mode_buttons[mode] = self._main_window.child_window(title=mode.value)
+                self._mode_buttons[mode].click_input()
             except ElementNotFoundError:
                 raise ElementNotFound(f"Mode button {mode.value} not found")
             self.mode = mode
@@ -152,7 +195,7 @@ class Gigapixel:
         return instance
 
     @log("Checking path: {}", "Path is valid", format=(1,), level=Level.DEBUG)
-    def _check_path(self, path: Path, output_format: OutputFormat) -> None:
+    def _check_path(self, path: Path, output_format: Optional[OutputFormat]) -> None:
         if not path.is_file():
             raise NotFile(f"Path is not a file: {path}")
 
@@ -166,18 +209,19 @@ class Gigapixel:
             return input_string[:-len(suffix)]
         return input_string
 
-    def _get_save_path(self, path: Path, output_format: OutputFormat) -> Path:
-        extension = path.suffix if output_format == OutputFormat.PRESERVE_SOURCE_FORMAT else f".{output_format.value.lower()}"
+    def _get_save_path(self, path: Path, output_format: Optional[OutputFormat]) -> Path:
+        extension = path.suffix if output_format is None or output_format == OutputFormat.PRESERVE_SOURCE_FORMAT else \
+            f".{output_format.value.lower()}"
         return path.parent / (Gigapixel._remove_suffix(path.name, path.suffix) + self._output_suffix + extension)
 
     @log(start="Starting processing: {}", format=(1,))
     @log(end="Finished processing: {}", format=(1,), level=Level.SUCCESS)
     def process(self,
                 photo_path: Path,
-                scale: Scale = Scale.X2,
-                mode: Mode = Mode.STANDARD,
-                delete_from_history: bool = True,
-                output_format: OutputFormat = OutputFormat.PRESERVE_SOURCE_FORMAT
+                scale: Optional[Scale] = None,
+                mode: Optional[Mode] = None,
+                delete_from_history: bool = False,
+                output_format: Optional[OutputFormat] = None
                 ) -> Path:
         self._check_path(photo_path, output_format)
 
