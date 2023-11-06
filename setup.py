@@ -46,7 +46,7 @@ setup(
 
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
-        'Operating System :: OS Independent',
+        'Operating System :: Microsoft :: Windows',
         'Intended Audience :: End Users/Desktop',
         'Intended Audience :: Developers',
         'Programming Language :: Python',
@@ -56,6 +56,8 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Programming Language :: Python :: Implementation :: CPython',
     ]
