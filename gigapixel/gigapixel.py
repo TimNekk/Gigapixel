@@ -42,18 +42,25 @@ class OutputFormat(Enum):
 class Gigapixel:
     def __init__(self,
                  executable_path: Path,
-                 output_suffix: str):
+                 output_suffix: str,
+                 processing_timeout: int = 900):
+        """
+        :param executable_path: Path to the executable (Topaz Gigapixel AI.exe)
+        :param output_suffix: Suffix to be added to the output file name (e.g. pic.jpg -> pic-gigapixel.jpg)
+        :param processing_timeout: Timeout for processing in seconds
+        """
         self._executable_path = executable_path
         self._output_suffix = output_suffix
 
         instance = self._get_gigapixel_instance()
-        self._app = self._App(instance)
+        self._app = self._App(instance, processing_timeout)
 
     class _App:
-        def __init__(self, app: Application):
+        def __init__(self, app: Application, processing_timeout: int):
             timings.Timings.window_find_timeout = 0.5
 
             self.app = app
+            self._processing_timeout = processing_timeout
             self._main_window = self.app.window()
 
             self.scale: Optional[Scale] = None
@@ -93,7 +100,7 @@ class Gigapixel:
                 self._cancel_processing_button = self._main_window.child_window(title="Cancel Processing",
                                                                                 control_type="Button",
                                                                                 depth=1)
-            self._cancel_processing_button.wait_not('visible', timeout=60)
+            self._cancel_processing_button.wait_not('visible', timeout=self._processing_timeout)
 
         @log("Deleting photo from history", "Photo deleted", level=Level.DEBUG)
         def delete_photo(self) -> None:
@@ -223,6 +230,16 @@ class Gigapixel:
                 delete_from_history: bool = False,
                 output_format: Optional[OutputFormat] = None
                 ) -> Path:
+        """
+        Process a photo using Topaz Gigapixel AI
+
+        :param photo_path: Path to the photo to be processed
+        :param scale: Scale to be used for processing
+        :param mode: Mode to be used for processing
+        :param delete_from_history: Whether to delete the photo from history after processing
+        :param output_format: Output format of the processed photo
+        :return: Path to the processed photo
+        """
         self._check_path(photo_path, output_format)
 
         self._app.open_photo(photo_path)
