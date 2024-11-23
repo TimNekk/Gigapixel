@@ -1,20 +1,23 @@
-import os
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 from pathlib import Path
+import win32api
+import win32con
 
 from .logging import log, Level
-from .exceptions import NotFile, FileAlreadyExists, ElementNotFound
+from .exceptions import NotFile, ElementNotFound
 
 from pywinauto import ElementNotFoundError, timings
 import clipboard
 from loguru import logger
 from pywinauto.application import Application, ProcessNotFoundError
 from pywinauto.keyboard import send_keys
+from pywinauto.timings import TimeoutError
+from the_retry import retry
 
 
 class Scale(Enum):
-    X05 = "0.5x"
+    X1 = "1x"
     X2 = "2x"
     X4 = "4x"
     X6 = "6x"
@@ -22,35 +25,24 @@ class Scale(Enum):
 
 class Mode(Enum):
     STANDARD = "Standard"
-    Lines = "Lines"
+    HIGH_FIDELITY = "High fidelity"
+    LOW_RESOLUTION = "Low res"
+    TEXT_AND_SHAPES = "Text & shapes"
     ART_AND_CG = "Art & CG"
-    HIGH_QUALITY = "HQ"
-    LOW_RESOLUTION = "Low Res"
-    VERY_COMPRESSED = "Very Compressed"
-
-
-class OutputFormat(Enum):
-    PRESERVE_SOURCE_FORMAT = "Preserve Source Format"
-    JPG = "JPG"
-    JPEG = "JPEG"
-    TIF = "TIF"
-    TIFF = "TIFF"
-    PNG = "PNG"
-    DNG = "DNG"
+    RECOVERY = "Recovery"
 
 
 class Gigapixel:
     def __init__(self,
-                 executable_path: Path,
-                 output_suffix: str,
-                 processing_timeout: int = 900):
+                 executable_path: Union[Path, str],
+                 processing_timeout: int = 900) -> None:
         """
         :param executable_path: Path to the executable (Topaz Gigapixel AI.exe)
-        :param output_suffix: Suffix to be added to the output file name (e.g. pic.jpg -> pic-gigapixel.jpg)
         :param processing_timeout: Timeout for processing in seconds
         """
         self._executable_path = executable_path
-        self._output_suffix = output_suffix
+        if isinstance(executable_path, str):
+            self._executable_path = Path(executable_path)
 
         instance = self._get_gigapixel_instance()
         self._app = self._App(instance, processing_timeout)
@@ -67,18 +59,16 @@ class Gigapixel:
             self.mode: Optional[Mode] = None
 
             self._cancel_processing_button: Optional[Any] = None
-            self._delete_button: Optional[Any] = None
-            self._output_combo_box: Optional[Any] = None
-            self._preserve_source_format_button: Optional[Any] = None
-            self._jpg_button: Optional[Any] = None
-            self._jpeg_button: Optional[Any] = None
-            self._tif_button: Optional[Any] = None
-            self._tiff_button: Optional[Any] = None
-            self._png_button: Optional[Any] = None
-            self._dng_button: Optional[Any] = None
+            self._save_button: Optional[Any] = None
             self._scale_buttons: Dict[Scale, Any] = {}
             self._mode_buttons: Dict[Mode, Any] = {}
 
+        @retry(
+            expected_exception=(ElementNotFoundError,),
+            attempts=5,
+            backoff=0.5,
+            exponential_backoff=True,
+        )
         @log("Opening photo: {}", "Photo opened", format=(1,), level=Level.DEBUG)
         def open_photo(self, photo_path: Path) -> None:
             while photo_path.name not in self._main_window.element_info.name:
@@ -86,27 +76,45 @@ class Gigapixel:
                 self._main_window.set_focus()
                 send_keys('{ESC}^o')
                 clipboard.copy(str(photo_path))
-                send_keys('^v {ENTER}')
+                send_keys('^v {ENTER}{ESC}')
+                
 
         @log("Saving photo", "Photo saved", level=Level.DEBUG)
-        def save_photo(self, output_format: Optional[OutputFormat]) -> None:
-            send_keys('^S')
-
-            if output_format:
-                self._set_output_format(output_format)
+        def save_photo(self) -> None:
+            self._open_export_dialog()
 
             send_keys('{ENTER}')
             if self._cancel_processing_button is None:
-                self._cancel_processing_button = self._main_window.child_window(title="Cancel Processing",
+                self._cancel_processing_button = self._main_window.child_window(title="Close window",
                                                                                 control_type="Button",
                                                                                 depth=1)
-            self._cancel_processing_button.wait_not('visible', timeout=self._processing_timeout)
+            self._cancel_processing_button.wait('visible', timeout=self._processing_timeout)
 
-        @log("Deleting photo from history", "Photo deleted", level=Level.DEBUG)
-        def delete_photo(self) -> None:
-            if self._delete_button is None:
-                self._delete_button = self._main_window.Pane.Button2
-            self._delete_button.click_input()
+            self._close_export_dialog()
+
+        @retry(
+            expected_exception=(TimeoutError,),
+            attempts=10,
+            backoff=0.1,
+            exponential_backoff=True,
+        )
+        @log("Opening export dialog", "Export dialog opened", level=Level.DEBUG)
+        def _open_export_dialog(self) -> None:
+            send_keys('^S')
+            if self._save_button is None:
+                self._save_button = self._main_window.child_window(title="Save", control_type="Button", depth=1)
+            self._save_button.wait('visible', timeout=0.1)
+        
+        @retry(
+            expected_exception=(TimeoutError,),
+            attempts=10,
+            backoff=0.1,
+            exponential_backoff=True,
+        )
+        @log("Closing export dialog", "Export dialog closed", level=Level.DEBUG)
+        def _close_export_dialog(self) -> None:
+            send_keys('{ESC}')
+            self._cancel_processing_button.wait_not('visible', timeout=0.1)
 
         @log("Setting processing options", "Processing options set", level=Level.DEBUG)
         def set_processing_options(self, scale: Optional[Scale] = None, mode: Optional[Mode] = None) -> None:
@@ -114,47 +122,6 @@ class Gigapixel:
                 self._set_scale(scale)
             if mode:
                 self._set_mode(mode)
-
-        def _set_output_format(self, save_format: OutputFormat) -> None:
-            if self._output_combo_box is None:
-                self._output_combo_box = self._main_window.ComboBox
-            self._output_combo_box.click_input()
-
-            if save_format == OutputFormat.PRESERVE_SOURCE_FORMAT:
-                if self._preserve_source_format_button is None:
-                    self._preserve_source_format_button = self._main_window.ListItem
-                self._preserve_source_format_button.click_input()
-                send_keys('{TAB}')
-            elif save_format == OutputFormat.JPG:
-                if self._jpg_button is None:
-                    self._jpg_button = self._main_window.ListItem2
-                self._jpg_button.click_input()
-                send_keys('{TAB}')
-            elif save_format == OutputFormat.JPEG:
-                if self._jpeg_button is None:
-                    self._jpeg_button = self._main_window.ListItem3
-                self._jpeg_button.click_input()
-                send_keys('{TAB}')
-            elif save_format == OutputFormat.TIF:
-                if self._tif_button is None:
-                    self._tif_button = self._main_window.ListItem4
-                self._tif_button.click_input()
-                send_keys('{TAB} {TAB} {TAB}')
-            elif save_format == OutputFormat.TIFF:
-                if self._tiff_button is None:
-                    self._tiff_button = self._main_window.ListItem5
-                self._tiff_button.click_input()
-                send_keys('{TAB} {TAB} {TAB}')
-            elif save_format == OutputFormat.PNG:
-                if self._png_button is None:
-                    self._png_button = self._main_window.ListItem6
-                self._png_button.click_input()
-                send_keys('{TAB}')
-            elif save_format == OutputFormat.DNG:
-                if self._dng_button is None:
-                    self._dng_button = self._main_window.ListItem7
-                self._dng_button.click_input()
-                send_keys('{TAB}')
 
         def _set_scale(self, scale: Scale):
             if self.scale == scale:
@@ -202,51 +169,40 @@ class Gigapixel:
         return instance
 
     @log("Checking path: {}", "Path is valid", format=(1,), level=Level.DEBUG)
-    def _check_path(self, path: Path, output_format: Optional[OutputFormat]) -> None:
+    def _check_path(self, path: Path) -> None:
         if not path.is_file():
             raise NotFile(f"Path is not a file: {path}")
-
-        save_path = self._get_save_path(path, output_format)
-        if save_path.name in os.listdir(path.parent):
-            raise FileAlreadyExists(f"Output file already exists: {save_path}")
 
     @staticmethod
     def _remove_suffix(input_string: str, suffix: str) -> str:
         if suffix and input_string.endswith(suffix):
             return input_string[:-len(suffix)]
         return input_string
-
-    def _get_save_path(self, path: Path, output_format: Optional[OutputFormat]) -> Path:
-        extension = path.suffix if output_format is None or output_format == OutputFormat.PRESERVE_SOURCE_FORMAT else \
-            f".{output_format.value.lower()}"
-        return path.parent / (Gigapixel._remove_suffix(path.name, path.suffix) + self._output_suffix + extension)
+    
+    def _set_english_layout(self) -> None:
+        english_layout = 0x0409
+        win32api.LoadKeyboardLayout(hex(english_layout), win32con.KLF_ACTIVATE)
 
     @log(start="Starting processing: {}", format=(1,))
     @log(end="Finished processing: {}", format=(1,), level=Level.SUCCESS)
     def process(self,
-                photo_path: Path,
+                photo_path: Union[Path, str],
                 scale: Optional[Scale] = None,
                 mode: Optional[Mode] = None,
-                delete_from_history: bool = False,
-                output_format: Optional[OutputFormat] = None
-                ) -> Path:
+                ) -> None:
         """
         Process a photo using Topaz Gigapixel AI
 
         :param photo_path: Path to the photo to be processed
         :param scale: Scale to be used for processing
         :param mode: Mode to be used for processing
-        :param delete_from_history: Whether to delete the photo from history after processing
-        :param output_format: Output format of the processed photo
-        :return: Path to the processed photo
         """
-        self._check_path(photo_path, output_format)
+        if isinstance(photo_path, str):
+            photo_path = Path(photo_path)
+        
+        self._set_english_layout()
+        self._check_path(photo_path)
 
         self._app.open_photo(photo_path)
         self._app.set_processing_options(scale, mode)
-        self._app.save_photo(output_format)
-
-        if delete_from_history:
-            self._app.delete_photo()
-
-        return self._get_save_path(photo_path, output_format)
+        self._app.save_photo()

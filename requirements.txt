@@ -1,3 +1,4 @@
 pywinauto
 clipboard
 loguru
+the-retry

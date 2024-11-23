@@ -24,11 +24,11 @@
 
 ## Requirements
 
-[Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v6.1.0** or **newer** required
+Tested on [Topaz Gigapixel AI](https://www.topazlabs.com/gigapixel-ai) **v7.2.3**
 
 ## Installation
 
-Install the current version with [PyPI](https://pypi.org/project/gigapixel/)
+Install the latest version with [PyPI](https://pypi.org/project/gigapixel/)
 
 ```bash
 pip install -U gigapixel
@@ -36,42 +36,29 @@ pip install -U gigapixel
 
 ## Usage
 
-1. Create `Gigapixel` instance
-2. Use `.process()` method to enhance image
-
 ```python
-from gigapixel import Gigapixel, Scale, Mode, OutputFormat
-from pathlib import Path
+from gigapixel import Gigapixel
 
-# Path to Gigapixel executable file.
-exe_path = Path('C:\Program Files\Topaz Labs LLC\Topaz Gigapixel AI\Topaz Gigapixel AI.exe')
+gp = Gigapixel(r"C:\Program Files\Topaz Labs LLC\Topaz Gigapixel AI\Topaz Gigapixel AI.exe")
 
-# Output file suffix. (e.g. pic.jpg -> pic-gigapixel.jpg)
-# You should set same value inside Gigapixel (File -> Preferences -> Default filename suffix).
-output_suffix = '-gigapixel'
-
-# Create Gigapixel instance.
-app = Gigapixel(exe_path, output_suffix)
-
-# Process image.
-image = Path('path/to/image.jpg')
-output_path = app.process(image)
-
-# Print output path.
-print(output_path)
+gp.process(r"path\to\image.jpg")
 ```
 
-Additional parameters can be passed to `process()` method **(Takes additional time)**:
+Additional parameters can be passed to `process()` method:
 ```python
-from gigapixel import Scale, Mode, OutputFormat
+from gigapixel import Scale, Mode
 
-output_path = app.process(image, scale=Scale.X2, mode=Mode.STANDARD, delete_from_history=True, output_format=OutputFormat.PNG)
+gp.process(
+  r"path\to\image.jpg",
+  scale=Scale.X2,
+  mode=Mode.STANDARD,
+)
 ```
 
 > **Warning!**
-> Using parameters (`scale`, `mode`, `output_format`, `delete_from_history`) will take **additional time** to process single image.
+> Using parameters (`scale`, `mode`) may take **additional time** to process single image.
 > Consider using them only when needed.
-> To get the best performance, use `app.process(image)`
+> To get the best performance, use `gp.process(r"path\to\image.jpg")`
 
 
 ## Contributing
